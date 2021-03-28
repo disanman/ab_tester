@@ -15,7 +15,7 @@ variant of a user's experience outperforms the other, thus helping the business 
 
 # What is AB Tester (this package)? [WIP]
 It's a set of utilities written on Python for evaluating AB Tests, like:
-  - [O] Sample size calculation by using different methodologies:
+  - [ ] Sample size calculation by using different methodologies:
       - [X] Approximate approach by using n=16·σ²/Δ²
       - [X] Similar approach to the one used in R with the function....
       - [X] Similar approach to the one used in the nice [Evan-Miller calculator](http://www.evanmiller.org/ab-testing/sample-size.html#!20;85;5;5;0)
@@ -59,12 +59,13 @@ Examples of use with code:
 # Imports the class ABTester (you can find the code in the file abtester.py)
 from abtester import ABTester
 
-# Input variant information, defining significance at 5% and power of the test at 80%
-A = dict(impressions=10e3, conversions=840)   # A := control group
+# Input variant information A (control group)
+A = dict(impressions=10e3, conversions=840)
 
-# Initialize object ab_tester
+# Initialize object ab_tester, defining significance at 5% and power of the test at 80%:
 abtester = ABTester(A, significance=0.05, power=0.8)
 
+ # The min_detectable_effect will be relative to the current conversion rate
 abtester.get_sample_size(method='approx1', min_detectable_effect=0.1)
 #     A minimum sample size of
 #       n = 17448 is needed
@@ -87,4 +88,7 @@ abtester.get_sample_size(method='R', min_detectable_effect=0.1)
 #      with a power of 80%
 #      and a significance level of 5.0%
 ```
+Hence, for our Website we would implement the test and would need about ~17.8k observations in each branch (A, B) to
+be able to measure a (relative) change of ~10% from a base conversion rate of 8.4% with a power of 80% and a
+significance level of 5%.
 
