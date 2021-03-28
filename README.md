@@ -21,27 +21,8 @@ It's a set of utilities written on Python for evaluating AB Tests, like:
       - [X] Similar approach to the one used in the nice [Evan-Miller calculator](http://www.evanmiller.org/ab-testing/sample-size.html#!20;85;5;5;0)
       - [ ] Standford approach, [link](http://statweb.stanford.edu/~susan/courses/s141/hopower.pdf)
   - [ ] Graphical tools:
-      - [ ] WIP
-
-# Why has been this created?
-This is just some tests I have been doing with the available functions in Python, and some AB Tests courses I have done.
-I just compare, test, create functionality and put it in git so maybe it can be useful to anyone doing some AB Tests.
-There are many more packages like this, which are also much more complete than this one, each one allows to test
-different things (I will 'borrow' parts of their code here):
-  - [pyAB](https://github.com/AdiVarma27/pyAB): it has some really nice charts!
-  - [abracadabra](https://github.com/quizlet/abracadabra): nice charts, both frequentist and Bayesian approach
-  - [ABTests](https://github.com/leodema/ABtests): has some ABTest reports
-  - [abito](https://github.com/avito-tech/abito): offers the possibility to make bootstrap analysis
-  - Bayesian approach:
-      - [AByes](https://github.com/cbellei/abyes): Bayesian
-      - [Babtest](https://github.com/tcassou/babtest)
-  - Other resources:
-      - [Google course on AB testing](https://www.udacity.com/course/ab-testing--ud257): has a nice introduction to the topic
-      - [The math behind AB testing with code examples](https://towardsdatascience.com/the-math-behind-a-b-testing-with-example-code-part-1-of-2-7be752e1d06f)
-
-So why to bother creating a new package? well for me it's more like 'learn by doing', that way I learn by testing,
-hacking, copying, checking how it works, experiment, fail and improve. I also like programming in Python so creating a
-nice python interface to this relatively complex topic seems like a nice hobby to me.
+      - [X] Sample size vs. min detectable effect
+      - [ ] Power vs. sample size
 
 # How to use it?
 
@@ -90,34 +71,70 @@ Hence, for our Website we would implement the test and would need about ~17.8k o
 be able to measure a (relative) change of ~10% from a base conversion rate of 8.4% with a power of 80% and a
 significance level of 5%.
 
-## Getting help
+### Required sample size as a function of the minimum detectable effect
+The minimum detectable effect is the minimum change in the base metric that we want to be able to identify. The
+smaller this value is the higher the resulting sample size would be. This could be visualized with the help of
+AB Tester:
+```python
+A = dict(impressions=10e3, conversions=840)
+abtester = ABTester(A, significance=0.05, power=0.8)
+abtester.plot_sample_size_vs_diff(diff_range=(0.05, 0.35), steps=100, p_hat=None, method='R', desired_effect=0.1)
+```
+The following plot is created:
+![sample_size vs detectable diff](images/sample_size_vs_min_detectable_diff.svg)
+In the plot, the line represents the different sample sizes required as a function of the minimum detectable
+difference for the given significance and power values defined in the moment of initialization of the ABTester
+instance. In this case, it is required a sample size of 17448 for detecting an effect of 10%.
+
+
+# Why has been this created?
+This is just some tests I have been doing with the available functions in Python, and some AB Tests courses I have done.
+I just compare, test, create functionality and put it in git so maybe it can be useful to anyone doing some AB Tests.
+There are many more packages like this, which are also much more complete than this one, each one allows to test
+different things (I will 'borrow' parts of their code here):
+  - [pyAB](https://github.com/AdiVarma27/pyAB): it has some really nice charts!
+  - [abracadabra](https://github.com/quizlet/abracadabra): nice charts, both frequentist and Bayesian approach
+  - [ABTests](https://github.com/leodema/ABtests): has some ABTest reports
+  - [abito](https://github.com/avito-tech/abito): offers the possibility to make bootstrap analysis
+  - Bayesian approach:
+      - [AByes](https://github.com/cbellei/abyes): Bayesian
+      - [Babtest](https://github.com/tcassou/babtest)
+  - Other resources:
+      - [Google course on AB testing](https://www.udacity.com/course/ab-testing--ud257): has a nice introduction to the topic
+      - [The math behind AB testing with code examples](https://towardsdatascience.com/the-math-behind-a-b-testing-with-example-code-part-1-of-2-7be752e1d06f)
+
+So why to bother creating a new package? well for me it's more like 'learn by doing', that way I learn by testing,
+hacking, copying, checking how it works, experiment, fail and improve. I also like programming in Python so creating a
+nice python interface to this relatively complex topic seems like a nice hobby to me.
+
+# Getting help
 Just trigger the help command on the class or methods:
 ```python
 help(ABTester)
 #  class ABTester(builtins.object)
-#   |  AB Tester is a set of utilities written on Python for evaluating AB Tests.
-#   |  You can initialize the code like:
-#   |
-#   |  from abtester import ABTester
-#   |  ab_tester = ABTester()
-#   |
-#   |  Methods defined here:
-#   |
-#   |  __init__(self, A, B=None, significance=0.05, power=0.8, two_sided=True)
-#   |      Initializes the AB Tester object
-#   |      Args:
-#   |          - A:                  (dict)  dictionary with two key-values: "conversions" and "impressions" (both have int values)
-#   |          - B:                  (dict or None)  dictionary with two key-values: "conversions" and "impressions" (both have int values)
-#   |          - significance level: (float) alpha, default: 0.05 (5%)
-#   |          - power:              (float) 1-beta, default: 0.8 (80%)
-#   |          - two_sided:          (bool)  wheter a two-sided test is used or not, default True (two-sided)
-#   |
-#   |  get_sample_size(self, method='approx1', p_hat=None, min_detectable_effect=0.1)
-#   |      Calls the calculation of the required sample size by using on of the available methods:
-#   |       Args:
-#   |          - method:       (string) Options: 'approx1', 'evan_miller', 'R', 'standford'
-#   |          - p_hat:        (float or null) proportion, if None, the control variant A in initialization will be used
-#   |          - min_detectable_effect:   (float) minimum detectable effect, relative to base conversion rate.
-#   |      Returns:
-#   |          - sample size   (float)
+#     AB Tester is a set of utilities written on Python for evaluating AB Tests.
+#     You can initialize the code like:
+#
+#     from abtester import ABTester
+#     ab_tester = ABTester()
+#
+#     Methods defined here:
+#
+#     __init__(self, A, B=None, significance=0.05, power=0.8, two_sided=True)
+#         Initializes the AB Tester object
+#         Args:
+#             - A:                  (dict)  dictionary with two key-values: "conversions" and "impressions" (both have int values)
+#             - B:                  (dict or None)  dictionary with two key-values: "conversions" and "impressions" (both have int values)
+#             - significance level: (float) alpha, default: 0.05 (5%)
+#             - power:              (float) 1-beta, default: 0.8 (80%)
+#             - two_sided:          (bool)  wheter a two-sided test is used or not, default True (two-sided)
+#
+#     get_sample_size(self, method='approx1', p_hat=None, min_detectable_effect=0.1)
+#         Calls the calculation of the required sample size by using on of the available methods:
+#          Args:
+#             - method:       (string) Options: 'approx1', 'evan_miller', 'R', 'standford'
+#             - p_hat:        (float or null) proportion, if None, the control variant A in initialization will be used
+#             - min_detectable_effect:   (float) minimum detectable effect, relative to base conversion rate.
+#         Returns:
+#             - sample size   (float)
 ```

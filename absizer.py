@@ -32,15 +32,16 @@ class ABSizer():
         if not p_hat:
             p_hat = self.p_hat
         if method == 'approx1':
-            self.get_sample_size_approx_1(p_hat, min_detectable_effect)
+            sample_size = self.get_sample_size_approx_1(p_hat, min_detectable_effect)
         elif method == 'evan_miller':
-            self.get_sample_size_evan_miller(p_hat, min_detectable_effect)
+            sample_size = self.get_sample_size_evan_miller(p_hat, min_detectable_effect)
         elif method == 'R':
-            self.get_sample_size_as_R(p_hat, min_detectable_effect)
+            sample_size = self.get_sample_size_as_R(p_hat, min_detectable_effect)
         elif method == 'standford':
-            self.get_sample_size_standford(p_hat, min_detectable_effect)
+            sample_size = self.get_sample_size_standford(p_hat, min_detectable_effect)
         else:
             raise ValueError(f'error in method input: {method}')
+        return sample_size
 
     def get_sample_size_approx_1(self, p_hat=None, min_detectable_effect=0.05):
         '''
@@ -96,7 +97,7 @@ class ABSizer():
 
     def get_sample_size_as_R(self, p_hat=None, min_detectable_effect=0.05):
         '''
-        Sample size needed for a two-sided test, given a minimun dettectable effect
+        Sample size needed for a two-sided test, given a minimun detectable effect
         Args:
             - p_hat:                  (float) the base proportion
             - min_detectable_effect:  (float) Minimum detectable effect, relative to base conversion rate.
