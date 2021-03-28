@@ -15,10 +15,11 @@ variant of a user's experience outperforms the other, thus helping the business 
 
 # What is AB Tester (this package)? [WIP]
 It's a set of utilities written on Python for evaluating AB Tests, like:
-  - [ ] Sample size calculation by using different methodologies:
-      - [ ] Approximate approach by using n=16·σ²/Δ²
-      - [ ] Similar approach to the one used in R with the function....
-      - [ ] Similar approach to the one used in the nice [Evan-Miller calculator](http://www.evanmiller.org/ab-testing/sample-size.html#!20;85;5;5;0)
+  - [O] Sample size calculation by using different methodologies:
+      - [X] Approximate approach by using n=16·σ²/Δ²
+      - [X] Similar approach to the one used in R with the function....
+      - [X] Similar approach to the one used in the nice [Evan-Miller calculator](http://www.evanmiller.org/ab-testing/sample-size.html#!20;85;5;5;0)
+      - [ ] Standford approach, [link](http://statweb.stanford.edu/~susan/courses/s141/hopower.pdf)
   - [ ] Graphical tools:
       - [ ] to be defined...
 
@@ -34,20 +35,56 @@ different things (I will 'borrow' parts of their code here):
   - Bayesian approach:
       - [AByes](https://github.com/cbellei/abyes): Bayesian
       - [Babtest](https://github.com/tcassou/babtest)
+  - Other resources:
+      - [Google course on AB testing](https://www.udacity.com/course/ab-testing--ud257): has a nice introduction to the topic
+      - [The math behind AB testing with code examples](https://towardsdatascience.com/the-math-behind-a-b-testing-with-example-code-part-1-of-2-7be752e1d06f)
 
 So why to bother creating a new package? well for me it's more like 'learn by doing', that way I learn by testing,
 hacking, copying, checking how it works, experiment, fail and improve. I also like programming in Python so creating a
 nice python interface to this relatively complex topic seems like a nice hobby to me.
 
-# How to use the it? [WIP]
-Just initialize an ABTester object by using something like:
+# How to use the it?
+
+Examples of use with code:
+
+## Finding the required sample size for an AB Test
+  - We have an e-commerce that in it's current state, from each ~10k users, about 840 make a given action (for example
+    buy a given item).
+      - Performance measurement: 840 / 10000 = 8.4%
+  - We would like to implement a new variant of the Web site and we would like to be able to
+    measure if that new variant improves in ~10% our base performance measure.
+  - What would be the required sample size for this AB test?
+
 ```python
 # Imports the class ABTester (you can find the code in the file abtester.py)
 from abtester import ABTester
 
-# Initialize object ab_tester
-ab_tester = ABTester()
+# Input variant information, defining significance at 5% and power of the test at 80%
+A = dict(impressions=10e3, conversions=840)   # A := control group
 
-ab_tester.find_sample_size(method='approx1')
+# Initialize object ab_tester
+abtester = ABTester(A, significance=0.05, power=0.8)
+
+abtester.get_sample_size(method='approx1', min_detectable_effect=0.1)
+#     A minimum sample size of
+#       n = 17448 is needed
+#
+#       to detect a change of 10% (relative) of a base proportion of 8.40%
+
+abtester.get_sample_size(method='evan_miller', min_detectable_effect=0.1)
+#    A minimum sample size of
+#      n = 17347 is needed
+#
+#      to detect a change of 10% (relative) of a base proportion of 8.40%
+#      with a power of 80%
+#      and a significance level of 5.0%
+
+abtester.get_sample_size(method='R', min_detectable_effect=0.1)
+#     A minimum sample size of
+#      n = 17882 is needed
+#
+#      to detect a change of 10% (relative) of a base proportion of 8.40%
+#      with a power of 80%
+#      and a significance level of 5.0%
 ```
 
