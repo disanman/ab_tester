@@ -4,7 +4,7 @@
                           / _ \ |  _ \    | |/ _ \/ __| __/ _ \ '__|
                          / ___ \| |_) |   | |  __/\__ \ ||  __/ |
                         /_/   \_\____/    |_|\___||___/\__\___|_|
-Some utilities for evaluating AB Tests
+                           Some utilities for evaluating AB Tests
 ```
 # What is an AB Test?
 It's a user experience research methodology. It consists of a randomized experiment with two product variants: A and
@@ -17,11 +17,11 @@ variant of a user's experience outperforms the other, thus helping the business 
 It's a set of utilities written on Python for evaluating AB Tests, like:
   - [ ] Sample size calculation by using different methodologies:
       - [X] Approximate approach by using n=16·σ²/Δ²
-      - [X] Similar approach to the one used in R with the function....
+      - [X] Similar approach to the one used in R with the function `power.prop.test`
       - [X] Similar approach to the one used in the nice [Evan-Miller calculator](http://www.evanmiller.org/ab-testing/sample-size.html#!20;85;5;5;0)
       - [ ] Standford approach, [link](http://statweb.stanford.edu/~susan/courses/s141/hopower.pdf)
   - [ ] Graphical tools:
-      - [ ] to be defined...
+      - [ ] WIP
 
 # Why has been this created?
 This is just some tests I have been doing with the available functions in Python, and some AB Tests courses I have done.
@@ -43,9 +43,7 @@ So why to bother creating a new package? well for me it's more like 'learn by do
 hacking, copying, checking how it works, experiment, fail and improve. I also like programming in Python so creating a
 nice python interface to this relatively complex topic seems like a nice hobby to me.
 
-# How to use the it?
-
-Examples of use with code:
+# How to use it?
 
 ## Finding the required sample size for an AB Test
   - We have an e-commerce that in it's current state, from each ~10k users, about 840 make a given action (for example
@@ -92,3 +90,34 @@ Hence, for our Website we would implement the test and would need about ~17.8k o
 be able to measure a (relative) change of ~10% from a base conversion rate of 8.4% with a power of 80% and a
 significance level of 5%.
 
+## Getting help
+Just trigger the help command on the class or methods:
+```python
+help(ABTester)
+#  class ABTester(builtins.object)
+#   |  AB Tester is a set of utilities written on Python for evaluating AB Tests.
+#   |  You can initialize the code like:
+#   |
+#   |  from abtester import ABTester
+#   |  ab_tester = ABTester()
+#   |
+#   |  Methods defined here:
+#   |
+#   |  __init__(self, A, B=None, significance=0.05, power=0.8, two_sided=True)
+#   |      Initializes the AB Tester object
+#   |      Args:
+#   |          - A:                  (dict)  dictionary with two key-values: "conversions" and "impressions" (both have int values)
+#   |          - B:                  (dict or None)  dictionary with two key-values: "conversions" and "impressions" (both have int values)
+#   |          - significance level: (float) alpha, default: 0.05 (5%)
+#   |          - power:              (float) 1-beta, default: 0.8 (80%)
+#   |          - two_sided:          (bool)  wheter a two-sided test is used or not, default True (two-sided)
+#   |
+#   |  get_sample_size(self, method='approx1', p_hat=None, min_detectable_effect=0.1)
+#   |      Calls the calculation of the required sample size by using on of the available methods:
+#   |       Args:
+#   |          - method:       (string) Options: 'approx1', 'evan_miller', 'R', 'standford'
+#   |          - p_hat:        (float or null) proportion, if None, the control variant A in initialization will be used
+#   |          - min_detectable_effect:   (float) minimum detectable effect, relative to base conversion rate.
+#   |      Returns:
+#   |          - sample size   (float)
+```
