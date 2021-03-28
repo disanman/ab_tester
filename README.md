@@ -84,7 +84,7 @@ The following plot is created:
 ![sample_size vs detectable diff](images/sample_size_vs_min_detectable_diff.svg)
 In the plot, the line represents the different sample sizes required as a function of the minimum detectable
 difference for the given significance and power values defined in the moment of initialization of the ABTester
-instance. In this case, it is required a sample size of 17448 for detecting an effect of 10%.
+instance. In this case, it is required a sample size of 17882 for detecting an effect of 10%.
 
 
 # Why has been this created?
