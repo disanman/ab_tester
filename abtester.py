@@ -98,8 +98,26 @@ class ABTester():
         df = pd.DataFrame.from_dict(data)
         df['min_effects'] = min_effects
         df = df.melt(id_vars=['min_effects'], var_name='significance', value_name='sample_size')        # id_vars: those columns that will remain, the others will be melted into rows
-        df['significance'] = df['significance'].astype('category')
         df['significance'] = pd.Categorical(f'{val:.0%}' for val in df['significance'])    # make it categorical-string and in %
         plot = self.plotter.plot_sample_size_vs_diff_vs_significance(df, power=self.power, p_hat=p_hat)
 
+    def plot_power_vs_sample_size_vs_min_differences(self, sample_size_range=(500, 1000), steps=50, min_diffs=(0.05, 0.1, 0.15), p_hat=None, significance=None):
+        ''' Plots the power of the AB Test vs. sample size in the input range:
+        Args:
+            - min_sample_size: (int) minimum sample size in plot (x-axis)
+            - max_sample_size: (int) maximum sample size in plot (x-axis)
+            - step_sample_size: (int) '''
+        p_hat = self.A['p_hat'] if not p_hat else p_hat
+        significance = self.significance if not significance else significance
+        step_size = (sample_size_range[1] - sample_size_range[0]) / steps
+        sample_sizes = np.arange(start=sample_size_range[0], stop=sample_size_range[1], step=step_size)
+        # Create data frame with data:
+        data = dict()
+        for min_diff in min_diffs:
+            data[min_diff] = [self.sizer.find_power_given_min_effect_and_sample_size(min_detectable_effect=min_diff, sample_size=sample_size, p_hat=p_hat, significance=significance) for sample_size in sample_sizes]
+        df = pd.DataFrame.from_dict(data)
+        df['sample_sizes'] = sample_sizes
+        df = df.melt(id_vars=['sample_sizes'], var_name='min_diff', value_name='power')        # id_vars: those columns that will remain, the others will be melted into rows
+        df['min_diff'] = pd.Categorical([f'{val:.0%}' for val in df['min_diff']], categories=[f'{val:.0%}' for val in min_diffs], ordered=True)    # make it categorical-string and in %
+        plot = self.plotter.plot_power_vs_sample_size_vs_min_differences(df, p_hat, significance)
 

@@ -170,4 +170,20 @@ class ABSizer():
                      \n  and a significance level of {significance:.1%}')
         return sample_size
 
+    def find_power_given_min_effect_and_sample_size(self, min_detectable_effect, sample_size, p_hat=None, significance=None):
+        ''' Calculates the power of an AB test when control is defined as variant A, and given the inputs:
+        Args:
+            - min_detectable_effect (float): Minimum detectable effect, relative to base conversion rate (p_hat).
+            - sample_size:          (int) number of data points that are available for the test
+            - p_hat:                (float or null) base conversion rate (proportion), if None, the one calculated in the initialization will be used
+            - significance:         (float or null) if None, the one given in the initialization will be used
+        '''
+        if not p_hat:
+            p_hat = self.p_hat
+        if not significance:
+            significance = self.significance
+        effect_size = sms.proportion_effectsize(p_hat, p_hat * (1 + min_detectable_effect))
+        power = sms.NormalIndPower().solve_power(effect_size, nobs1=sample_size, alpha=significance, ratio=1)
+        return power
+
 

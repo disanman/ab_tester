@@ -86,13 +86,27 @@ In the plot, the line represents the different sample sizes required as a functi
 difference for the given significance and power values defined in the moment of initialization of the ABTester
 instance. In this case, it is required a sample size of 17882 for detecting an effect of 10%.
 
-There is also the possibility to plot the required sample size vs. different levels of significance. For thi the following
+There is also the possibility to plot the required sample size vs. different levels of significance. For this, the following
 code example can be used (with the same initialization as before):
 ```python
 abtester.plot_sample_size_vs_diff_vs_significance(diff_range=(0.05, 0.25), steps=50, p_hat=None, method='R')
 ```
 The following plot is created:
 ![sample_size vs detectable diff_vs_significance](images/sample_size_vs_min_detectable_diff_vs_significance.svg)
+
+### Power an AB test would have given the available sample size and the minimum detectable difference
+With a given sample size (which is considered the same size for the two variants A and B), and depending on the minimum
+difference we would like to be able to detect between the A and B variants, we could find the statistical power that our
+AB test would have:
+```python
+abtester.plot_power_vs_sample_size_vs_min_differences(sample_size_range=(100, 300e3), steps=50, min_diffs=(0.03, 0.05, 0.10), p_hat=None, significance=None)
+# p_hat refers to the control proportion. p_hat and significance can be specified, if None, the initialization values is used
+```
+The previous call to the method `plot_power_vs_sample_size_vs_min_differences` will return the following plot:
+![Power vs sample size and minimum difference](images/power_vs_sample_size_and_min_diff.svg)
+The previous plot shows that around 20k samples are required for an AB test to be able to detect a 10% in a base metric
+of 8.4% with a power of 80% and a significance of 5%.
+
 
 # Why has been this created?
 This is just some tests I have been doing with the available functions in Python, and some AB Tests courses I have done.
