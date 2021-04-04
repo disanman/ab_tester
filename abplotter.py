@@ -45,3 +45,21 @@ class ABPlotter():
             plt.text(x=x, y=y*1.05, s=f'↙ n ={y:.0f} @ {x:.2%}', size=14, color='gray')
         plt.show()
 
+    def plot_sample_size_vs_diff_vs_significance(self, df, power, p_hat):
+        ''' Plots various lines corresponding the sample size needed vs. minimum_detectable_change per different levels of significance level
+        Args:
+            - data:             (dataframe) with the columns: min_effects, significance and sample_size
+            - power:            (float) power level used in the test
+        '''
+        colors = ('cornflowerblue', 'orange', 'green', 'salmon', 'olive', 'goldenrod')
+        plt.figure()
+        plot = sns.lineplot(x='min_effects', y='sample_size', hue='significance', data=df, linewidth=2, palette=colors)
+        plt.suptitle('Sample size required vs. minimum detectable difference')  # actual title
+        sig_levels = list(df.significance.value_counts().index)
+        plot.set(xlabel=f'Minimum detectable difference (% of base metric: {p_hat:.2%})', ylabel='Sample size',
+                 title=fr'Power: {power:.0%} (1-$\beta$)')
+        plot.set_xticklabels(f'{x:.0%}' for x in plot.get_xticks())
+        # Set ylabel in thousands or millions
+        plot.set_yticklabels(f'{x/1e6:,.1f}M' if x >= 1e6 else f'{x/1000:,.0f}k' for x in plot.get_yticks())
+        plt.show()
+

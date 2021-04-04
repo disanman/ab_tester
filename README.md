@@ -86,6 +86,13 @@ In the plot, the line represents the different sample sizes required as a functi
 difference for the given significance and power values defined in the moment of initialization of the ABTester
 instance. In this case, it is required a sample size of 17882 for detecting an effect of 10%.
 
+There is also the possibility to plot the required sample size vs. different levels of significance. For thi the following
+code example can be used (with the same initialization as before):
+```python
+abtester.plot_sample_size_vs_diff_vs_significance(diff_range=(0.05, 0.25), steps=50, p_hat=None, method='R')
+```
+The following plot is created:
+![sample_size vs detectable diff_vs_significance](images/sample_size_vs_min_detectable_diff_vs_significance.svg)
 
 # Why has been this created?
 This is just some tests I have been doing with the available functions in Python, and some AB Tests courses I have done.
