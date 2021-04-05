@@ -5,6 +5,7 @@ from logzero import logger
 from json import dumps
 from absizer import ABSizer
 from abplotter import ABPlotter
+from scipy.stats import norm
 
 logger.setLevel(logging.INFO)    # may choose DEBUG
 
@@ -37,7 +38,7 @@ class ABTester():
         self.plotter = ABPlotter()
         if B:
             self.B['p_hat'] = self.B['conversions'] / self.B['impressions']
-            # TODO: self.AB_stats = self._get_AB_test_stats()    # it will be a namedtuple for easier access with . notation
+            self.AB_stats = self._get_ab_test_stats()    # it will be a dataframe
 
     def get_sample_size(self, method='approx1', p_hat=None, min_detectable_effect=0.1, significance=None):
         ''' Calls the calculation of the required sample size by using on of the available methods:
@@ -121,3 +122,61 @@ class ABTester():
         df['min_diff'] = pd.Categorical([f'{val:.0%}' for val in df['min_diff']], categories=[f'{val:.0%}' for val in min_diffs], ordered=True)    # make it categorical-string and in %
         plot = self.plotter.plot_power_vs_sample_size_vs_min_differences(df, p_hat, significance)
 
+    def _get_z_val(self, prob=None, two_sided=None):
+        ''' Returns the z value of a normal distribution for a given significance level (probability value) '''
+        # Find the z value accordingly with one_sided or two_sided test:
+        if not two_sided:
+            two_sided = self.two_sided
+        if not prob:
+            prob = (self.significance / 2) if two_sided else (self.significance)   # alpha/2 if two-sided
+        z = -norm.ppf(prob)   # finds the z-value for the given probability
+        return z
+
+    def _get_variant_confidence_interval(self, variant, significance=None, two_sided=None):
+        ''' Finds the confidence interval around the central proportion value (p_hat) given the
+        Args:
+            - variant:          (dict)  dictionary with min two key-values: "conversions" and "impressions" (both have int values)
+            - significance:     (float or None) alpha, if not given, the one used at initialization will be used
+            - two_sided:        (bool)  wheter a two-sided test is used or not, defaults to value given at initialization
+        Uses the z-value given the input significance and two_sided test configuration (uses the initialization values or the ones in input)
+        '''
+        if not significance:
+            significance = self.significance
+        if not two_sided:
+            two_sided = self.two_sided
+        impressions, p_hat = variant['impressions'], variant['p_hat']
+        if impressions * p_hat < 5:
+            logger.warning(f'Warning: the normal approximation does not hold for variant: {variant}')
+        # Calculating the standard_error of the sample (assuming the distribution is like a binomial): p_hat · (1 - p_hat) ≝ sample variance (S²)
+        standard_error = np.sqrt(p_hat * (1 - p_hat) / impressions)
+        z = self._get_z_val(significance, two_sided)
+        margin_of_error = z * standard_error   # assumes it is normally distributed
+        left = p_hat - margin_of_error
+        right = p_hat + margin_of_error
+        logger.info(f'p_hat: {p_hat:.2f}, z: {z:.2f}, margin of error: {margin_of_error:.3f}')
+        logger.info(f'Confidence interval: ({left:.3f}, {right:.3f})')
+        confidence_interval = (left, right)
+        return confidence_interval
+
+    def _get_ab_test_stats(self):
+        # Create data frame with variant data
+        A = self.A
+        A['variant'] = 'A'
+        A['ci_left'], A['ci_right'] = self._get_variant_confidence_interval(A)
+        B = self.B
+        B['variant'] = 'B'
+        B['ci_left'], B['ci_right'] = self._get_variant_confidence_interval(B)
+        data = pd.DataFrame([A, B])
+        return data
+
+    def plot_confidence_intervals(self):
+        plot = self.plotter.plot_confidence_intervals(self.AB_stats, self.significance, self.two_sided)
+        return plot
+
+    def plot_ab_variants(self):
+        '''
+        TODO
+        '''
+        if not self.B:
+            raise ValueError('Missing information related to variant B, please input it when initialising the ABTester object.')
+        raise NotImplementedError

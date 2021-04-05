@@ -104,8 +104,58 @@ abtester.plot_power_vs_sample_size_vs_min_differences(sample_size_range=(100, 30
 ```
 The previous call to the method `plot_power_vs_sample_size_vs_min_differences` will return the following plot:
 ![Power vs sample size and minimum difference](images/power_vs_sample_size_and_min_diff.svg)
-The previous plot shows that around 20k samples are required for an AB test to be able to detect a 10% in a base metric
+The previous plot shows that around ~17.8K samples are required for an AB test to be able to detect a 10% in a base metric
 of 8.4% with a power of 80% and a significance of 5%.
+
+## Evaluating the A/B test results
+
+From the previous results we found out we needed about ~17.8k samples in each branch in order to detect a change of
+10% (relative) of a base conversion proportion of 8.40% with a power of 80% and a significance level of 5.0%.
+
+Let's assume we implemented the A/B test: we tested a new version of the e-commerce in which we changed the way we
+presented the information to our users and how they interact with the Web site. It took us one week to collect the
+required data. The Product Owners seem happy because it seems we are driving more conversions. The following are the
+results of our A/B test:
+  - **Control variant (A)**:
+      - Impressions: 18320
+      - Conversions: 1523
+  - **Test variant (B)**:
+      - Impressions: 19510
+      - Conversions: 1734
+The question to be asked now is... what can we conclude from this test? is the new Web page (variant B) actually
+improving the user experience? so that at the end it represents a better performance (more conversions)? should we
+keep only the variant B and replace the variant A?
+
+The way to tackle the problem is by the use of [Hypothesis testing](https://en.wikipedia.org/wiki/Statistical_hypothesis_testing). Are the results statistically significative? in
+other words, from the observed data, can we conclude that there is a significative change or instead, we are just
+observing *statistical noise* (or variations that could be due by chance)?.
+
+Let's first visualize the test results:
+
+
+### Plotting the results from A/B variants
+- [ ] plot impressions + conversions
+
+## Plotting of the separate confidence intervals per variant
+
+```python
+A = dict(impressions=18320, conversions=1523)   # A := control group
+B = dict(impressions=19510, conversions=1732)   # B := test group
+# Initialising a new abtester object with the previous A/B test results
+abtester = ABTester(A, B, significance=0.05, power=0.8)
+abtester.plot_confidence_intervals()
+```
+![Comparison of the confidence intervals](images/Comparison_of_Confidence_intervals_A_B.svg)
+
+It is shown in the plot how the two separated confidence intervals (one for variant A and the other for variant B) present
+some overlapping. It is true that when confidence intervals don't overlap, the difference between groups is statistically
+significant. However, when there is some overlap, the difference might still be significant. As suggested [here](https://statisticsbyjim.com/hypothesis-testing/confidence-intervals-compare-means/), we could:
+  - Use an 83% confidence interval for each group instead of 95% (since the confidence interval method has lower power
+    vs. the t-test)
+  - Find the confidence interval of the difference between the group means (or the base measurements), and compare it
+    against zero (this type of confidence interval will always agree with the 2-sample t-test)
+
+- [ ] plot confidence interval of the difference! → compare against zero
 
 
 # Why has been this created?

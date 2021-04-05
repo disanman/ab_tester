@@ -87,3 +87,44 @@ class ABPlotter():
         plot.legend(reversed(handles), reversed(labels), title=f'Min detectable difference \n (% of base metric: {p_hat:0.1%}):')
         plt.show()
 
+    def plot_confidence_intervals(self, data, significance, two_sided):
+        ''' Creates a point plot of the confidence intervals around the proportion
+        estimation (p_hat) of the variants A and B in an AB Test
+        Args:
+            - data:         (data frame) with the A/B variant data
+            - significance: (float) the significance (probability) level used to calculate the confidence intervals
+            - two_sided:    (bool) indicates whether it has been two_sided or not
+        '''
+        mask_a = data['variant'] == 'A'
+        # Is the central value p_hat for A variant smaller than B variant?
+        a_lower_than_b = (data.loc[mask_a, 'p_hat'].iloc[0]) < (data.loc[~mask_a, 'p_hat'].iloc[0])
+        # If A is lower than B, is there a significative difference? → is the right CI of A variant < than the left CI of B?
+        if a_lower_than_b:
+            right_ci_A = data.loc[mask_a, 'ci_right'].iloc[0]
+            left_ci_B = data.loc[~mask_a, 'ci_left'].iloc[0]
+            significative_diff = right_ci_A < left_ci_B
+            fill_between = (right_ci_A, left_ci_B)
+        else: # A is higher than B → is the right CI of B variant < than the left CI of A?
+            right_ci_B = data.loc[~mask_a, 'ci_right'].iloc[0]
+            left_ci_A = data.loc[mask_a, 'ci_left'].iloc[0]
+            significative_diff = right_ci_B < left_ci_A
+            fill_between = (right_ci_B, left_ci_A)
+        df = data[['variant', 'p_hat', 'ci_left', 'ci_right']].melt(id_vars=['variant'], var_name='col', value_name='val')
+        # Create point plot
+        plt.figure()
+        plot = sns.pointplot(y='variant', x='val', data=df, linewidth=2, hue='variant', capsize=0.1)
+        # Set titles and labels
+        plt.suptitle('Comparison of the confidence intervals of the two variants A and B', fontsize=18, y=0.96)
+        if significative_diff:
+            title = f'There is significative difference between the confidence intervals (they do not overlap)'
+        else:
+            title = f'The two confidence intervals overlap, there might not be a significative difference'
+        title += fr' ($\alpha$:{significance:0.1%} ' + ('Two-sided' if two_sided else 'One-sided') + ')'
+        plot.set(xlabel='Base metric', ylabel='Variant', title=title)
+        # Set x-labels in percentages
+        plot.set_xticklabels(f'{x:.1%}' for x in plot.get_xticks())
+        # Add fill color, according to the case
+        fill_color = 'green' if significative_diff else 'red'
+        x = np.linspace(fill_between[0], fill_between[1], 10)
+        plot.fill_between(x, y1=0, y2=1, where=(x < 1), facecolor='red', alpha=0.4)
+        return plot
