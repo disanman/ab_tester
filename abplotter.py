@@ -126,5 +126,47 @@ class ABPlotter():
         # Add fill color, according to the case
         fill_color = 'green' if significative_diff else 'red'
         x = np.linspace(fill_between[0], fill_between[1], 10)
-        plot.fill_between(x, y1=0, y2=1, where=(x < 1), facecolor='red', alpha=0.4)
+        plot.fill_between(x, y1=0, y2=1, where=(x < 1), facecolor=fill_color, alpha=0.3)
         return plot
+
+    def plot_ab_variants(self, data):
+        ''' Creates a stacked bar chart with the representation of the two variants A/B and the proportion of each one
+        Args:
+            - data:         (data frame) with the A/B variant data
+        '''
+        df = data[['variant', 'conversions', 'impressions']].copy()
+        df['impressions'] = df['impressions'] - df['conversions']   # conversions are part of the impressions!
+        df = df.melt(id_vars='variant', var_name='col', value_name='value')
+        plot = self.create_stacked_bar_plot(x='variant', y='value', break_by_col='col', data=df, colors=('cornflowerblue', 'goldenrod'))
+        # Rotate axis:
+        for tick in plot.get_xticklabels():
+            tick.set_rotation(0)
+        plt.suptitle('A/B variants', fontsize=18, y=0.96)
+        mask_a = data['variant'] == 'A'
+        title = f'Conversion rate in variant A: {data.loc[mask_a, "p_hat"].iloc[0]:0.2%}, in variant B: {data.loc[~mask_a, "p_hat"].iloc[0]:0.2%}'
+        plot.set(xlabel='Variant', ylabel='Sample size per variant', title=title)
+        plot.set_yticklabels(f'{x/1e6:,.1f}M' if x >= 1e6 else f'{x/1000:,.0f}k' for x in plot.get_yticks())
+        return plot
+
+    @staticmethod
+    def create_stacked_bar_plot(x, y, break_by_col, data, categories=None, colors=('cornflowerblue', 'orange', 'goldenrod', 'green', 'olive'), figsize=(15,7)):
+        '''Creates a stacked bar plot, uses the bar plot option in pandas dataframe, but first it pivots the data
+        Args:
+            - x:            the column used to plot x
+            - y:            the column used to plot y
+            - categories:    if given, the data will be sorted as indicated in those categories
+            TODO: improve documentation
+        '''
+        df = data.copy()
+        if not categories:
+            categories = df[break_by_col].unique()
+        # Convert column to categorical → so the order can be implemented
+        df[break_by_col] = pd.Categorical(data[break_by_col], categories=categories, ordered=True)
+        # Pivot data!
+        df = df.reset_index().pivot(index=x, columns=break_by_col, values=y)    # Todo: is it needed the aggregation function?
+        # Make the plot!
+        ax = df.plot.bar(stacked=True, figsize=figsize, color=colors)
+        # Fix order in the legend! → reverse it
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(reversed(handles), reversed(labels))
+        return ax

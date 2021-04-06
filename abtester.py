@@ -175,8 +175,10 @@ class ABTester():
 
     def plot_ab_variants(self):
         '''
-        TODO
+        Plots the two variants of the test as a stacked bar chart with two colors
         '''
         if not self.B:
             raise ValueError('Missing information related to variant B, please input it when initialising the ABTester object.')
-        raise NotImplementedError
+        data = self.AB_stats
+        plot = self.plotter.plot_ab_variants(data)
+        return plot

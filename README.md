@@ -132,17 +132,21 @@ observing *statistical noise* (or variations that could be due by chance)?.
 
 Let's first visualize the test results:
 
-
 ### Plotting the results from A/B variants
-- [ ] plot impressions + conversions
-
-## Plotting of the separate confidence intervals per variant
-
+With the following code, the two variants can be visualised:
 ```python
 A = dict(impressions=18320, conversions=1523)   # A := control group
 B = dict(impressions=19510, conversions=1732)   # B := test group
 # Initialising a new abtester object with the previous A/B test results
 abtester = ABTester(A, B, significance=0.05, power=0.8)
+abtester.plot_ab_variants()
+```
+![AB variants](images/AB_variants.svg)
+As presented, the variant A has a conversion rate (p_hat) of 8.31% while the B variant presents 8.88%.
+
+## Plotting of the separate confidence intervals per variant
+
+```python
 abtester.plot_confidence_intervals()
 ```
 ![Comparison of the confidence intervals](images/Comparison_of_Confidence_intervals_A_B.svg)
