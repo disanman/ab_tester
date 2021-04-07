@@ -161,6 +161,18 @@ significant. However, when there is some overlap, the difference might still be 
 
 - [ ] plot confidence interval of the difference! → compare against zero
 
+## Visualizing the AB Test results
+The following code will present the AB Test results:
+```
+A = dict(impressions=18320, conversions=1523)   # A := control group
+B = dict(impressions=19510, conversions=1732)   # B := test group
+abtester = ABTester(A, B, significance=0.05)
+abtester.ab_plot(show=['significance', 'power'])
+```
+![AB Test results](images/ab_plot_results.svg)
+The dark area, represents the significance level used in the test. The green area represents the power of the test has to
+reject the Null Hypothesis. Since there is not enough power to reject the Null Hypothesis (in this case only 62.2%, we fail
+to reject it and consequently cannot conclude there is a significant improvement brought by the new variant B).
 
 # Why has been this created?
 This is just some tests I have been doing with the available functions in Python, and some AB Tests courses I have done.

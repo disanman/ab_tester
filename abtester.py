@@ -5,7 +5,8 @@ from logzero import logger
 from json import dumps
 from absizer import ABSizer
 from abplotter import ABPlotter
-from scipy.stats import norm
+from scipy.stats import norm, binom
+from collections import namedtuple
 
 logger.setLevel(logging.INFO)    # may choose DEBUG
 
@@ -38,7 +39,7 @@ class ABTester():
         self.plotter = ABPlotter()
         if B:
             self.B['p_hat'] = self.B['conversions'] / self.B['impressions']
-            self.AB_stats = self._get_ab_test_stats()    # it will be a dataframe
+            self.AB_stats, self.variant_data = self._get_ab_test_stats()    # it will be a dataframe
 
     def get_sample_size(self, method='approx1', p_hat=None, min_detectable_effect=0.1, significance=None):
         ''' Calls the calculation of the required sample size by using on of the available methods:
@@ -166,11 +167,35 @@ class ABTester():
         B = self.B
         B['variant'] = 'B'
         B['ci_left'], B['ci_right'] = self._get_variant_confidence_interval(B)
-        data = pd.DataFrame([A, B])
-        return data
+        variant_data = pd.DataFrame([A, B])
+        # find AB_stats
+        pooled_prob = (self.A['conversions'] + self.B['conversions']) / (self.A['impressions'] + self.B['impressions'])
+        pooled_standard_error = np.sqrt(pooled_prob * (1 - pooled_prob) *
+                                        (1 / self.A['impressions'] + 1 / self.B['impressions']))
+        d_hat = self.B["p_hat"] - self.A["p_hat"]
+        z = self._get_z_val()
+        margin_of_error = z * pooled_standard_error
+        left = d_hat - margin_of_error
+        right = d_hat + margin_of_error
+        confidence_interval = (left, right)
+        # Get p-value of the AB test
+        p_value = binom(self.A['impressions'], self.A['p_hat']).pmf(self.B['impressions'] * self.B['p_hat'])
+        # Gather result stats
+        Stats = namedtuple(typename='Stats', field_names='d_hat, pooled_prob, pooled_se, confidence_interval, p_value')
+        return Stats(d_hat, pooled_prob, pooled_standard_error, confidence_interval, p_value), variant_data
+
+    def print_AB_results(self):
+        logger.info(f'Estimated difference, d_hat: {self.AB_stats.d_hat}')
+        left, right = self.AB_stats.confidence_interval
+        logger.info(f'Confidence interval: ({left:.2%}, {right:.2%})')
+        logger.info(f'All AB test stats: {self.AB_stats}')
+        if ((left < 0) and (0 < right)) or (self.AB_stats.p_value > self.significance):
+            logger.info(f"NOT significative results: since confidence interval: ({left:.2%}, {right:.2%}) contains zero or p-value: {self.AB_stats.p_value:0.2%} >= significance level: {self.significance:0.2%}")
+        else:
+            logger.info(f"Significative results!!, since confidence interval: ({left:.2%}, {right:.2%}) doesn't contain zero and p-value: {self.AB_stats.p_value:0.2%} < significance level: {self.significance:0.2%}")
 
     def plot_confidence_intervals(self):
-        plot = self.plotter.plot_confidence_intervals(self.AB_stats, self.significance, self.two_sided)
+        plot = self.plotter.plot_confidence_intervals(self.variant_data, self.significance, self.two_sided)
         return plot
 
     def plot_ab_variants(self):
@@ -179,6 +204,15 @@ class ABTester():
         '''
         if not self.B:
             raise ValueError('Missing information related to variant B, please input it when initialising the ABTester object.')
-        data = self.AB_stats
-        plot = self.plotter.plot_ab_variants(data)
+        plot = self.plotter.plot_ab_variants(self.variant_data)
         return plot
+
+    def ab_plot(self, show='power', figsize=(15, 8)):
+        ''' Plots the AB test analysis results
+        Args:
+            - show: (str) Options: power, alpha, beta, p-value, or None '''
+        # TODO: set plot default to show always the power → highlight and add plot annotations of the significance and the power of the test
+        # plot the distribution of the null and alternative hypothesis
+        plot = self.plotter.ab_plot(self.AB_stats, show, figsize, significance=self.significance)
+        return plot
+

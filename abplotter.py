@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.patches import Ellipse
 from matplotlib import rc                                                 # used to set matplotlib configuration parameters
+from scipy.stats import norm
 rc('figure', facecolor='white', titlesize=20, dpi=80, figsize=(12, 8))    # background color (so it's visible in IPython), subtitle size, dots_per_inch (the higher the slower), default figsize
 rc('grid', linestyle=':', color='gray', linewidth=0.3)
 rc('font', size=12)                                                       # font_scale
@@ -148,6 +149,76 @@ class ABPlotter():
         plot.set_yticklabels(f'{x/1e6:,.1f}M' if x >= 1e6 else f'{x/1000:,.0f}k' for x in plot.get_yticks())
         return plot
 
+    def _plot_norm_dist(self, ax, mu=0, std=1, label=None, num_std=4):
+        ''' Plots a normal distribution to the axis provided
+        Args:
+            - ax: (matplotlib axes)
+            - mu: (float) mean of the normal distribution
+            - std: (float) standard deviation of the normal distribution
+            - label: (string or None) label name for the plot
+            - with_CI: (bool) if True, adds confidence interval to the plot '''
+        x = np.linspace(mu - num_std * std, mu + num_std * std, 1000)
+        y = norm(mu, std).pdf(x)
+        ax.plot(x, y, label=label)
+        return x, y
+
+    def _plot_confidence_interval(self, ax, mu, std, color='grey'):
+        ''' Calculates the confidence interval of a normal distribution and plots it in the ax object
+        Args:
+            - ax: (matplotlib axes)
+            - mu: (float) mean of the normal distribution
+            - std: (float) standard deviation of the normal distribution '''
+        left, right = self._get_confidence_interval(mu, std)
+        ax.axvline(left, c=color, linestyle='--', alpha=0.5)
+        ax.axvline(right, c=color, linestyle='--', alpha=0.5)
+
+    def _get_confidence_interval(self, sample_mean=0, sample_std=1, sample_size=1):
+        ''' Returns the confidence interval of a normal distribution as input, using the significance level
+        self.significance
+        Args:
+            - sample_mean: (float)
+            - sample_std: (float)
+            - sample_size: (int)'''
+        z = -self._get_z_val()
+        left = sample_mean - z * sample_std / np.sqrt(sample_size)
+        right = sample_mean + z * sample_std / np.sqrt(sample_size)
+        return (left, right)
+
+    @staticmethod
+    def get_z_val(prob, mu=0, std=1):
+        ''' Returns the z value of a normal distribution for a given probability value (the opposite of the cdf)'''
+        return norm(mu, std).ppf(prob)
+
+    @staticmethod
+    def get_cdf(z, mu=0, std=1):
+        ''' Returns the cumulative probability value of a normal distribution from -∞ up to z'''
+        return norm(mu, std).cdf(z)
+
+    def ab_plot(self, ab_stats, show=None, figsize=(16, 8), significance=0.05, two_sided=False):
+        fig, ax = plt.subplots(figsize=figsize)   # create the plot object
+        # Find values of Null and Alternative hypothesis
+        mu_null = 0
+        mu_alternative = ab_stats.d_hat
+        std = ab_stats.pooled_se
+        z = self.get_z_val(1 - significance, mu=mu_null, std=std)    # significance if it was one-sided TODO: generalize it!!!!
+        beta = self.get_cdf(z, mu=mu_alternative, std=std)
+        power = 1 - beta
+        # Plot Null hypothesis: a normal curve centered in zero difference between the two variants (assumes there is no change)
+        x, y_null = self._plot_norm_dist(ax, mu=mu_null, std=std, label='Null')
+        if show == 'significance' or 'significance' in show:
+            self.fill_norm_dist_prob_area(ax=ax, prob=significance, mu=mu_null, std=std, left=False, color='gray', alpha=0.8)
+        # Plot Alternative hypothesis: there is a difference between the two variants (indicated by d_hat), has the same std as the Null
+        x, y_alt = self._plot_norm_dist(ax, mu=mu_alternative, std=std, label='Alternative')
+        if show == 'power' or 'power' in show:
+            self.fill_norm_dist_prob_area(ax=ax, prob=power, mu=mu_alternative, std=std, left=False, color='green', alpha=0.3)
+        # set extent of plot area
+        # ax.set_xlim(-3 * d_hat, 3 * d_hat)
+        plt.suptitle('AB Test results', fontsize=18, y=0.96)
+        title = f'Power of the test: {power:0.2%} at a significance level of {significance:0.0%}'
+        ax.set(xlabel=r'Difference between variants ($\hat{d}$)', ylabel='PDF', title=title)
+        plt.legend(loc='upper left', title='Hypothesis')
+        return ax
+
     @staticmethod
     def create_stacked_bar_plot(x, y, break_by_col, data, categories=None, colors=('cornflowerblue', 'orange', 'goldenrod', 'green', 'olive'), figsize=(15,7)):
         '''Creates a stacked bar plot, uses the bar plot option in pandas dataframe, but first it pivots the data
@@ -170,3 +241,93 @@ class ABPlotter():
         handles, labels = ax.get_legend_handles_labels()
         ax.legend(reversed(handles), reversed(labels))
         return ax
+
+    @staticmethod
+    def zplot(area=0.95, two_tailed=True, align_right=False, ax=None, annotate=True, set_labels=True):
+        """Plots a z distribution with common annotations
+        Example:
+            zplot(area=0.95)
+            zplot(area=0.80, two_tailed=False, align_right=True)
+        Parameters:
+            area  (float): The area under the standard normal distribution curve.
+            align (str): The area under the curve can be aligned to the center (default) or to the left.
+            ax    (matplot axis): an existing plot axis, if None a new figure will be created
+        Returns:
+            A plot of the normal distribution with annotations showing the
+            area under the curve and the boundaries of the area.
+        """
+        if not ax:
+            # create plot object
+            fig = plt.figure(figsize=(12, 6))
+            ax = fig.subplots()
+        # create normal distribution plot:
+        x = np.linspace(-5, 5, 1000)
+        y = norm.pdf(x)
+        ax.plot(x, y)
+        # ------------------------------------------------
+        # code to fill areas:
+        # for two-tailed tests
+        if two_tailed:
+            left = norm.ppf(0.5 - area / 2)
+            right = norm.ppf(0.5 + area / 2)
+            ax.vlines(right, 0, norm.pdf(right), color='grey', linestyle='--')
+            ax.vlines(left, 0, norm.pdf(left), color='grey', linestyle='--')
+            ax.fill_between(x, 0, y, color='grey', alpha=0.25, where=(x > left) & (x < right))
+            plt.xlabel('z')
+            plt.ylabel('PDF')
+            plt.text(left, norm.pdf(left), "z = {0:.3f}".format(left), fontsize=12, rotation=90, va="bottom", ha="right")
+            plt.text(right, norm.pdf(right), "z = {0:.3f}".format(right), fontsize=12, rotation=90, va="bottom", ha="left")
+        # for one-tailed tests
+        else:
+            # align the area to the right
+            if align_right:
+                left = norm.ppf(1-area)
+                ax.vlines(left, 0, norm.pdf(left), color='grey', linestyle='--')
+                ax.fill_between(x, 0, y, color='grey', alpha=0.25, where=x > left)
+                plt.text(left, norm.pdf(left), "z = {0:.3f}".format(left),
+                         fontsize=12, rotation=90, va="bottom", ha="right")
+            # align the area to the left
+            else:
+                right = norm.ppf(area)
+                ax.vlines(right, 0, norm.pdf(right), color='grey', linestyle='--')
+                ax.fill_between(x, 0, y, color='grey', alpha=0.25, where=x < right)
+                plt.text(right, norm.pdf(right), "z = {0:.3f}".format(right),
+                         fontsize=12, rotation=90, va="bottom", ha="left")
+        if annotate:
+            # annotate the shaded area
+            plt.text(0, 0.1, f'shaded area = {area:.2%}', fontsize=12, ha='center')
+        if set_labels:
+            # axis labels
+            plt.xlabel('z')
+            plt.ylabel('PDF')
+        return ax
+
+    @staticmethod
+    def fill_norm_dist_prob_area(ax=None, prob=0.5, mu=0, std=1, left=True, color='gray', alpha=0.25, num_std=4):
+        '''
+        Fill a normal distribution plot with the probability in input: finds the z-value corresponding for that
+        probability and fills (adds a shade) with the color indicated.
+        Args:
+            ax:      (axis or None) the axis in which to plot, if None, a new figure will be created
+            prob:    (float) the probability value to be shaded should be within the range [0, 1]
+            mu:      (float) the center of the normal distribution
+            std:     (float) the standard deviation of the normal distribution
+            left:    (bool) if True, the shade will be added from the left, else from the right
+            color:   (string) color to be used to fill
+            alpha:   (float) transparency the color fill will have
+            num_std: (float) number of standard deviations from the mean to make the plot
+        '''
+        if not ax:
+            # create plot object
+            fig = plt.figure(figsize=(12, 6))
+            ax = fig.subplots()
+        x = np.linspace(mu - num_std * std, mu + num_std * std, 500)
+        y = norm(mu, std).pdf(x)
+        if left:
+            z = norm(mu, std).ppf(prob)
+            ax.fill_between(x, 0, y, where=x<z, alpha=alpha, color=color)
+        else:
+            z = norm(mu, std).ppf(1 - prob)
+            ax.fill_between(x, 0, y, where=x>z, alpha=alpha, color=color)
+
+
